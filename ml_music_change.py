@@ -11,6 +11,7 @@ os.environ['HDF5_DISABLE_VERSION_CHECK'] = '2'
 # base dir to get audio data projetc
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 AUDIO_DIR = os.path.join(BASE_DIR, 'audio')
+BOSSA_DIR = os.path.join(AUDIO_DIR, 'bossa')
 RESULT_DIR = os.path.join(BASE_DIR, 'result')
 
 
@@ -32,6 +33,31 @@ def create_train_dataset(df, look_back, train=True):
         return np.array(dataX1), np.array(dataX2)
 
 
+def concatenate_music_df(audio_path: str, consolidate_music: list,
+                         start: int,
+                         end: int) -> pd.DataFrame:
+    '''
+        this function to consolidate all music in the folder audio
+        and returns a list of datasets.
+        you need to send a folder containing wav files
+        params: full_path_file: string containing the audio path
+        params: consolidate_music: empty list to be filled
+        params: rate: data generate by music read
+        returns consolidate_music, rate
+    '''
+
+    # search audions in the path
+    for root, _, files in os.walk(audio_path):
+        for file in files:
+            if file.endswith('.wav'):
+                print(file)
+                rate, music = read(os.path.join(root, file))
+                df_music = pd.DataFrame(music[start:end, :])
+                consolidate_music.append(df_music)
+
+    return pd.concat(consolidate_music), rate
+
+
 if __name__ == '__main__':
     # LSTM configuration
     shape = 100
@@ -47,34 +73,22 @@ if __name__ == '__main__':
     train_end = 20000
 
     # creating dataframe from music v1.wav
-    rate, music1 = read(os.path.join(AUDIO_DIR, 'bossa', 'Aguas_de_Marco.wav'))
-    rate, music2 = read(os.path.join(AUDIO_DIR, 'bossa', 'Desafinado.wav'))
-    rate, music3 = read(os.path.join(AUDIO_DIR, 'bossa', 'Ipanema.wav'))
-
-    # create dataframe of musics
-    df_music1 = pd.DataFrame(music1[data_start:data_end, :])
-    df_music2 = pd.DataFrame(music2[data_start:data_end, :])
-    df_music3 = pd.DataFrame(music3[data_start:data_end, :])
-
+    # dataset with all musics to train
+    consolidate_train, rate = concatenate_music_df(audio_path=BOSSA_DIR,
+                                                   consolidate_music=[],
+                                                   start=data_start,
+                                                   end=data_end)
     # train
-    X1, X2, y1, y2 = create_train_dataset(
-        pd.concat([df_music1.iloc[data_start:data_end, :],
-                   df_music2.iloc[data_start:data_end, :],
-                   df_music3.iloc[data_start:data_end, :]],
-                  axis=0),
-        look_back=3,
-        train=True
-    )
+    X1, X2, y1, y2 = create_train_dataset(consolidate_train, look_back=3,
+                                          train=True)
 
     # test
+    consolidate_test, rate_test = concatenate_music_df(audio_path=BOSSA_DIR,
+                                                       consolidate_music=[],
+                                                       start=train_start,
+                                                       end=train_end)
     test1, test2 = create_train_dataset(
-        pd.concat([df_music1.iloc[train_start: train_end, :],
-                   df_music2.iloc[train_start: train_end, :],
-                   df_music3.iloc[train_start: train_end, :]],
-                  axis=0),
-        look_back=3,
-        train=False
-    )
+        consolidate_test, look_back=3, train=False)
 
     # model settings and predictions
     # reshape data
@@ -94,7 +108,6 @@ if __name__ == '__main__':
     rnn1.fit(X1, y1, epochs=20, batch_size=100)
 
     # save model
-    
 
     # making predictions for channel 1 and channel 2
     pred_rnn1 = rnn1.predict(test1)
@@ -109,10 +122,8 @@ if __name__ == '__main__':
 
     # saving the original music in wav format
     write(os.path.join(AUDIO_DIR, 'bossa_original_lp.wav'), rate,
-          pd.concat([df_music1.iloc[train_start:train_end, :],
-                     df_music2.iloc[train_start:train_end, :],
-                     df_music3.iloc[train_start:train_end, :]],
-                    axis=0).values)
+          consolidate_test.values)
+
     # LeakyReLu
     rnn1 = Sequential()
     rnn1.add(LSTM(units=100, activation='linear', input_shape=(None, 3)))
@@ -138,4 +149,3 @@ if __name__ == '__main__':
                      pd.DataFrame(pred_rnn2.astype('int16'))],
                     axis=1).values
           )
-    
