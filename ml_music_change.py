@@ -50,7 +50,6 @@ def concatenate_music_df(audio_path: str, consolidate_music: list,
     for root, _, files in os.walk(audio_path):
         for file in files:
             if file.endswith('.wav'):
-                print(file)
                 rate, music = read(os.path.join(root, file))
                 df_music = pd.DataFrame(music[start:end, :])
                 consolidate_music.append(df_music)
