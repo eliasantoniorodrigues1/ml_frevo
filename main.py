@@ -64,14 +64,14 @@ if __name__ == '__main__':
     pred_rnn2 = rnn1.predict(test2)
 
     # saving the LSTM predicitons in wav format
-    write(os.path.join(RESULT_DIR, 'pred_bossa_rnn.wav'), rate,
+    write(os.path.join(RESULT_DIR, 'pred_frevo_rnn.wav'), rate,
           pd.concat([pd.DataFrame(pred_rnn1.astype('int16')),
                      pd.DataFrame(pred_rnn2.astype('int16'))],
                     axis=1).values
           )
 
     # saving the original music in wav format
-    write(os.path.join(AUDIO_DIR, 'bossa_original_lp.wav'), rate,
+    write(os.path.join(AUDIO_DIR, 'frevo_original_lp.wav'), rate,
           consolidate_test.values)
 
     # LeakyReLu
