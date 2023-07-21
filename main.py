@@ -102,8 +102,9 @@ if __name__ == '__main__':
 
     #-------------------------------------------------------------------------#
     # save model
-    saver = rnn1.train.Saver()
-    saver.save(sess, 'ml_frevo_model_lstm')
+    rnn1.save(filepath='ml_frevo_model_lstm')
+    # saver = rnn1.train.Saver()
+    # saver.save(sess, 'ml_frevo_model_lstm')
 
     # restore model
     # saver = rnn1.train.Saver()
